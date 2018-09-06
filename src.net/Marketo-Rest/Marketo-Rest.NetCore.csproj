@@ -5,7 +5,6 @@
     <RootNamespace>Marketo</RootNamespace>
     <PackageLicenseUrl>http://choosealicense.com/licenses/mit/</PackageLicenseUrl>
     <PackageId>Marketo-Rest</PackageId>
-    <Version>0.0.1</Version>
     <Authors>Various</Authors>
     <Company>BclEx</Company>
     <Product>Marketo-Rest</Product>
@@ -14,7 +13,7 @@
     <PackageProjectUrl>https://github.com/MadKudu/node-marketo</PackageProjectUrl>
     <RepositoryUrl>https://github.com/MadKudu/node-marketo</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <VersionPrefix>0.0.1</VersionPrefix>
+    <VersionPrefix>0.0.2</VersionPrefix>
     <VersionSuffix></VersionSuffix>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net45|AnyCPU'">
