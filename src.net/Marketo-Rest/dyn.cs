@@ -89,7 +89,7 @@ namespace Marketo
         /// <returns>IEnumerable&lt;KeyValuePair&lt;System.String, System.Object&gt;&gt;.</returns>
         public static IEnumerable<KeyValuePair<string, object>> getData(object s)
         {
-            if (s is ExpandoObject)
+            if (s is ExpandoObject || s is Dictionary<string, object>)
             {
                 var dyno = (IDictionary<string, object>)s;
                 return dyno.Select(x => new KeyValuePair<string, object>(x.Key, x.Value)).ToArray();
@@ -112,10 +112,10 @@ namespace Marketo
         /// <returns>IEnumerable&lt;KeyValuePair&lt;System.String, System.String&gt;&gt;.</returns>
         public static IEnumerable<KeyValuePair<string, string>> getDataAsString(object s)
         {
-            if (s is ExpandoObject)
+            if (s is ExpandoObject || s is Dictionary<string, object>)
             {
                 var dyno = (IDictionary<string, object>)s;
-                return dyno.Select(x => new KeyValuePair<string, string>(x.Key, x.Value.ToString())).ToArray();
+                return dyno.Select(x => new KeyValuePair<string, string>(x.Key, x.Value?.ToString())).ToArray();
             }
             else if (s is ExpandedObject)
             {
@@ -124,7 +124,7 @@ namespace Marketo
             }
             return s.GetType().GetProperties()
                 .Where(x => x.CanRead && x.GetValue(s, null) != null)
-                .Select(x => new KeyValuePair<string, string>(x.Name, x.GetValue(s, null).ToString()))
+                .Select(x => new KeyValuePair<string, string>(x.Name, x.GetValue(s, null)?.ToString()))
                 .ToList();
         }
 
@@ -148,10 +148,24 @@ namespace Marketo
         /// <param name="s">The s.</param>
         /// <param name="emptyIfNull">if set to <c>true</c> [empty if null].</param>
         /// <returns>System.Object.</returns>
-        public static object exp(object s, bool emptyIfNull = false)
+        public static object exp(object s, bool emptyIfNull = true)
         {
             if (s == null) return emptyIfNull ? new ExpandedObject(null) : null;
             return s is ExpandedObject ? s : new ExpandedObject(s);
+        }
+
+        public static dynamic toDynamic(object s)
+        {
+            if (s is ExpandoObject || s is Dictionary<string, object>)
+                return s;
+            else if (s is ExpandedObject)
+            {
+                var obj = (IDictionary<string, object>)new ExpandoObject();
+                foreach (var x in getData(s))
+                    obj.Add(x.Key, x.Value);
+                return (dynamic)obj;
+            }
+            return s;
         }
 
         internal class ExpandedObject : DynamicObject
@@ -161,7 +175,12 @@ namespace Marketo
 
             public ExpandedObject(object sealedObject)
             {
-                _object = sealedObject;
+                if (sealedObject is Dictionary<string, object>)
+                {
+                    _customProperties = (Dictionary<string, object>)sealedObject;
+                    _object = null;
+                }
+                else _object = sealedObject;
             }
 
             private PropertyInfo GetPropertyInfo(string propertyName)
@@ -179,7 +198,7 @@ namespace Marketo
             public IEnumerable<KeyValuePair<string, string>> GetDataAsString()
             {
                 var list = _customProperties.Select(x => new KeyValuePair<string, string>(x.Key, x.Value.ToString())).ToList();
-                if (_object != null) list.AddRange(_object.GetType().GetProperties().Select(x => new KeyValuePair<string, string>(x.Name, x.GetValue(_object).ToString())));
+                if (_object != null) list.AddRange(_object.GetType().GetProperties().Select(x => new KeyValuePair<string, string>(x.Name, x.GetValue(_object)?.ToString())));
                 return list;
             }
 

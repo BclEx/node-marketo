@@ -10,7 +10,7 @@ namespace Marketo
     {
         const int DefaultRetryCount = 5;
         const int DefaultInitialDelay = 1000; // 1 second
-        const int DefaultMaxDelay = 20000;
+        const int DefaultMaxDelay = 2000;
         readonly Action<string> _log = util.logger;
         readonly dynamic _options;
         readonly Backoff _newBackoff;
@@ -26,9 +26,9 @@ namespace Marketo
         int MaxDelay { get { return dyn.getProp(_options, "maxDelay", DefaultMaxDelay); } }
 
         Exception _lastError;
-        internal Task<JObject> start(Func<bool, Task<JObject>> fetchFn)
+        internal Task<object> start(Func<bool, Task<object>> fetchFn)
         {
-            var promise = new TaskCompletionSource<JObject>();
+            var promise = new TaskCompletionSource<object>();
             var forceOAuth = false;
             executeFn();
             _newBackoff.OnReady = (number, delay) => { _log($"Requesting for url {{ number: {number}, delay: {delay} }}"); executeFn(); };

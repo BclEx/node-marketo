@@ -1,9 +1,7 @@
 ﻿using Marketo.Require;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.Net;
-using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -148,7 +146,7 @@ namespace Marketo
 
         private async Task<dynamic> _request(string url, object data, dynamic options, Restler.Method method, string contentType = null)
         {
-            options = dyn.exp(options, true);
+            options = dyn.exp(options);
             if (!HttpTestExp.IsMatch(url))
             {
                 var baseUrl = dyn.getProp<string>(_options, "endpoint");
@@ -157,20 +155,22 @@ namespace Marketo
                 url = baseUrl + url;
             }
             _log($"Request: {url}");
-            Func<Task<JObject>, Task<JObject>> requestFn = async (x) =>
+            Func<Task<object>, Task<object>> requestFn = async (x) =>
             {
                 if (!x.IsFaulted)
                 {
                     var token = x.Result;
                     options.headers = dyn.getObj(options, "headers");
-                    options.headers.Authorization = $"Bearer {token["access_token"]}";
+                    options.headers.Authorization = $"Bearer {((dynamic)token).access_token}";
                     try
                     {
-                        var d = data == null ? (JObject)await _rest.request(url, options, method, contentType, (Action<HttpResponseMessage, string>)onResponse) : await _rest.json(url, data, options, method, (Action<HttpResponseMessage, string>)onResponse);
-                        if (d["errors"] != null)
+                        var d = data == null ?
+                            (dynamic)await _rest.request(url, options, method, contentType, (Action<HttpResponseMessage, string>)onResponse) :
+                            (dynamic)await _rest.json(url, data, options, method, (Action<HttpResponseMessage, string>)onResponse);
+                        if (d != null && d is JObject && d.errors != null)
                         {
                             _log($"Request failed: {d}");
-                            throw new MarketoException(HttpStatusCode.OK, d["errors"]);
+                            throw new MarketoException(HttpStatusCode.OK, d.errors);
                         }
                         return (dynamic)d;
                     }
@@ -196,7 +196,7 @@ namespace Marketo
                     _log($"_request failed: {err}"); throw err;
                 }
             };
-            Func<bool, Task<JObject>> requestFn2 = async (forceOAuth) => await requestFn(GetOAuthToken(forceOAuth));
+            Func<bool, Task<object>> requestFn2 = async (forceOAuth) => await requestFn(GetOAuthToken(forceOAuth));
             return await _retry.start(requestFn2);
 
             void onResponse(HttpResponseMessage res, string body)
@@ -207,11 +207,11 @@ namespace Marketo
             }
         }
 
-        private async Task<JObject> GetOAuthToken(bool force = false)
+        private async Task<object> GetOAuthToken(bool force = false)
         {
             if (force || _tokenData == null)
             {
-                Func<bool, Task<JObject>> requestFn = async (forceOAuth) =>
+                Func<bool, Task<object>> requestFn = async (forceOAuth) =>
                 {
                     var options = new
                     {

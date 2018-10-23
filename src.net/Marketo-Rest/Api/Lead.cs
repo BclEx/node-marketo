@@ -32,7 +32,7 @@ namespace Marketo.Api
         public Task<dynamic> ById(int id, dynamic options = null)
         {
             var path = util.createPath("lead", $"{id}.json");
-            options = dyn.exp(options);
+            options = dyn.exp(options, false);
             options = util.formatOptions(options, "fields");
             return _connection.get(path, new { query = options });
         }

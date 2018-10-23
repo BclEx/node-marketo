@@ -20,13 +20,15 @@ namespace Marketo
         {
             _connection = new Connection(options);
             //
+            Activities = new Activities(this, _connection);
+            BulkActivityExtract = new BulkActivityExtract(this, _connection);
+            BulkLeadExtract = new BulkLeadExtract(this, _connection);
             Campaign = new Campaign(this, _connection);
             Email = new Email(this, _connection);
             LandingPage = new LandingPage(this, _connection);
-            List = new List(this, _connection);
             Lead = new Lead(this, _connection);
+            List = new List(this, _connection);
             Stats = new Stats(this, _connection);
-            Activities = new Activities(this, _connection);
         }
 
         /// <summary>
@@ -34,6 +36,22 @@ namespace Marketo
         /// </summary>
         /// <value>The connection.</value>
         public Connection Connection => _connection;
+
+        /// <summary>
+        /// Gets the activities.
+        /// </summary>
+        /// <value>The activities.</value>
+        public Activities Activities { get; private set; }
+        /// <summary>
+        /// Gets the activities.
+        /// </summary>
+        /// <value>The activities.</value>
+        public BulkActivityExtract BulkActivityExtract { get; private set; }
+        /// <summary>
+        /// Gets the activities.
+        /// </summary>
+        /// <value>The activities.</value>
+        public BulkLeadExtract BulkLeadExtract { get; private set; }
 
         /// <summary>
         /// Gets the campaign.
@@ -51,25 +69,20 @@ namespace Marketo
         /// <value>The landing page.</value>
         public LandingPage LandingPage { get; private set; }
         /// <summary>
-        /// Gets the list.
-        /// </summary>
-        /// <value>The list.</value>
-        public List List { get; private set; }
-        /// <summary>
         /// Gets the lead.
         /// </summary>
         /// <value>The lead.</value>
         public Lead Lead { get; private set; }
         /// <summary>
+        /// Gets the list.
+        /// </summary>
+        /// <value>The list.</value>
+        public List List { get; private set; }
+        /// <summary>
         /// Gets the stats.
         /// </summary>
         /// <value>The stats.</value>
         public Stats Stats { get; private set; }
-        /// <summary>
-        /// Gets the activities.
-        /// </summary>
-        /// <value>The activities.</value>
-        public Activities Activities { get; private set; }
 
         /// <summary>
         /// Gets or sets the access token.

@@ -1,5 +1,9 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Marketo.Services;
+using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Marketo.Api
@@ -48,7 +52,7 @@ namespace Marketo.Api
         /// <returns>Task&lt;dynamic&gt;.</returns>
         public Task<dynamic> Enqueue(string exportId, dynamic options = null)
         {
-            var path = util.createPath("activities", "export", exportId, "enqueue.json");
+            var path = util.createBulkPath("activities", "export", exportId, "enqueue.json");
             return _connection.post(path, new { data = options });
         }
 
@@ -60,7 +64,7 @@ namespace Marketo.Api
         /// <returns>Task&lt;dynamic&gt;.</returns>
         public Task<dynamic> Status(string exportId, dynamic options = null)
         {
-            var path = util.createPath("activities", "export", exportId, "status.json");
+            var path = util.createBulkPath("activities", "export", exportId, "status.json");
             return _connection.get(path, new { data = options });
         }
 
@@ -72,9 +76,9 @@ namespace Marketo.Api
         /// <returns>Task&lt;dynamic&gt;.</returns>
         public async Task<dynamic> StatusTilCompleted(string exportId, dynamic options = null)
         {
-            Func<bool, Task<JObject>> requestFn = async (forceOAuth) =>
+            Func<bool, Task<object>> requestFn = async (forceOAuth) =>
             {
-                dynamic data = await Status(exportId);
+                var data = await Status(exportId);
                 if (!(bool)data.success)
                 {
                     var msg = (string)data.errors[0].message;
@@ -86,6 +90,7 @@ namespace Marketo.Api
                     throw new MarketoException(null)
                     {
                         Id = data["requestId"],
+                        Errors = new JArray(new JObject(new JProperty("code", "606"))),
                         Code = 606
                     };
                 return data;
@@ -101,7 +106,7 @@ namespace Marketo.Api
         /// <returns>Task&lt;dynamic&gt;.</returns>
         public Task<dynamic> Cancel(string exportId, dynamic options = null)
         {
-            var path = util.createPath("activities", "export", exportId, "cancel.json");
+            var path = util.createBulkPath("activities", "export", exportId, "cancel.json");
             return _connection.post(path, new { data = options });
         }
 
@@ -113,7 +118,7 @@ namespace Marketo.Api
         /// <returns>Task&lt;dynamic&gt;.</returns>
         /// <exception cref="MarketoException">
         /// </exception>
-        public async Task<dynamic> Get(dynamic filter, dynamic options = null)
+        public async Task<string> QueueAndWaitTilComplete(dynamic filter, dynamic options = null)
         {
             var data = await Create(filter, options);
             if (!(bool)data.success)
@@ -133,9 +138,15 @@ namespace Marketo.Api
                     throw new MarketoException(msg);
                 }
                 data = await StatusTilCompleted(exportId);
+                if (!(bool)data.success)
+                {
+                    var msg = (string)data.errors[0].message;
+                    _log(msg);
+                    throw new MarketoException(msg);
+                }
             }
             catch (Exception err) { await Cancel(exportId); throw err; }
-            return data;
+            return exportId;
         }
 
         /// <summary>
@@ -146,8 +157,26 @@ namespace Marketo.Api
         /// <returns>Task&lt;dynamic&gt;.</returns>
         public Task<dynamic> File(string exportId, dynamic options = null)
         {
-            var path = util.createPath("activities", "export", exportId, "file.json");
+            var path = util.createBulkPath("activities", "export", exportId, "file.json");
             return _connection.get(path, new { data = options });
+        }
+
+        /// <summary>
+        /// trans file as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="action">The action.</param>
+        /// <param name="exportId">The export identifier.</param>
+        /// <param name="options">The options.</param>
+        /// <returns>IEnumerable&lt;T&gt;.</returns>
+        public async Task<IEnumerable<T>> TransFileAsync<T>(Func<Collection<string>, T> action, string exportId, dynamic options = null)
+        {
+            var file = await File(exportId, options);
+            using (var sr = new StringReader(file))
+            {
+                var cr = new CsvReader();
+                return cr.Execute(sr, action);
+            }
         }
     }
 }

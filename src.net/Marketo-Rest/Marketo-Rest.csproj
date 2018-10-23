@@ -77,6 +77,7 @@
     <Compile Include="Require\RestlerOperationException.cs" />
     <Compile Include="Retry.cs" />
     <Compile Include="dyn.cs" />
+    <Compile Include="Services\CsvReader.cs" />
     <Compile Include="util.cs" />
     <Compile Include="Connection.cs" />
   </ItemGroup>

@@ -71,6 +71,7 @@ namespace Marketo.Require
                 var b = new UriBuilder(uri); b.Query = query; uri = b.Uri;
             }
             // data
+            //Console.WriteLine($"{uri}[{method}]: {JsonConvert.SerializeObject((object)options.data)}");
             HttpContent content = null;
             if (dyn.hasProp(options, "data") && options.data != null)
                 content = options.data is string ?
@@ -88,9 +89,10 @@ namespace Marketo.Require
             try
             {
                 var res = await _client.SendAsync(req, new CancellationTokenSource(timeout).Token);
+                var mediaType = res.Content.Headers.ContentType != null ? res.Content.Headers.ContentType.MediaType : null;
                 var body = await res.Content.ReadAsStringAsync();
                 onResponse?.Invoke(res, body);
-                var r = res.Content.Headers.ContentType.MediaType == "application/json" ? (object)JObject.Parse(body) : body;
+                var r = mediaType == "application/json" ? (object)JObject.Parse(body) : body;
                 if (!res.IsSuccessStatusCode)
                     throw new RestlerOperationException(res.StatusCode, r);
                 return r;
@@ -158,6 +160,7 @@ namespace Marketo.Require
         /// <returns>Task&lt;System.Object&gt;.</returns>
         public async Task<object> json(string url, object data, dynamic options, Method method = Method.GET, Action<HttpResponseMessage, string> onResponse = null, Func<string, string> fixup = null)
         {
+            data = dyn.toDynamic(data);
             var dataAsJson = JsonConvert.SerializeObject(data, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
             if (fixup != null) dataAsJson = fixup(dataAsJson);
             options = dyn.exp(options);
@@ -205,7 +208,7 @@ namespace Marketo.Require
         {
             var parameters = dyn.getDataAsString(s).Select(a =>
             {
-                try { return string.Format("{0}={1}", Uri.EscapeDataString(a.Key), Uri.EscapeDataString(a.Value)); }
+                try { return string.Format("{0}={1}", Uri.EscapeDataString(a.Key), a.Value != null ? Uri.EscapeDataString(a.Value) : null); }
                 catch (Exception ex) { throw new InvalidOperationException(string.Format("Failed when processing '{0}'.", a), ex); }
             })
             .Aggregate((a, b) => (string.IsNullOrEmpty(a) ? b : string.Format("{0}&{1}", a, b)));

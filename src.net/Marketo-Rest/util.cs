@@ -1,6 +1,5 @@
 ﻿using Marketo.Require;
 using System;
-using System.Linq;
 using System.Collections.Generic;
 
 namespace Marketo
@@ -38,7 +37,7 @@ namespace Marketo
             var copy = (IDictionary<string, object>)dyn.clone(options);
             foreach (var key in keys)
             {
-                if (!copy.TryGetValue(key, out object value))
+                if (!copy.TryGetValue(key, out object value) || value == null)
                     continue;
                 if (value is string[]) copy[key] = string.Join(",", (string[])value);
                 else if (value is object[]) copy[key] = string.Join(",", ((object[])value));
@@ -53,6 +52,5 @@ namespace Marketo
                 options = dyn.pick(options, keys);
             return arrayToCSV(options, new[] { "fields", "filterValues" });
         }
-
     }
 }
